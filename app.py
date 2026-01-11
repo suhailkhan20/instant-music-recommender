@@ -6,6 +6,7 @@ from sklearn.neighbors import NearestNeighbors
 st.set_page_config(page_title="Instant Music Recommender", layout="centered")
 
 st.title("🎵 Instant Music Recommender")
+st.caption("Content-based music recommendation using TF-IDF & Nearest Neighbors")
 
 @st.cache_data
 def load_data():
@@ -44,6 +45,7 @@ def recommend(song):
 
     return pd.DataFrame(results)
 
-if st.button("🚀 Recommend Similar Songs"):
-    st.success("Top similar songs:")
-    st.table(recommend(selected_song))
+if st.button("🎧 Recommend Similar Songs"):
+    result = recommend(selected_song)
+    result["Link"] = result["Link"].apply(lambda x: f"[Open Song]({x})")
+    st.markdown(result.to_markdown(index=False), unsafe_allow_html=True)
