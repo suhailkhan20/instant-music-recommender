@@ -47,5 +47,11 @@ def recommend(song):
 
 if st.button("🎧 Recommend Similar Songs"):
     result = recommend(selected_song)
-    result["Link"] = result["Link"].apply(lambda x: f"[Open Song]({x})")
-    st.markdown(result.to_markdown(index=False), unsafe_allow_html=True)
+
+    if result.empty:
+        st.warning("No recommendations found.")
+    else:
+        st.success("Top similar songs:")
+        st.dataframe(result, use_container_width=True)
+
+
