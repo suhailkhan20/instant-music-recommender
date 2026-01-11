@@ -1,31 +1,38 @@
 import streamlit as st
-import pickle
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neighbors import NearestNeighbors
 
-# Page configuration
-st.set_page_config(
-    page_title="Instant Music Recommender",
-    layout="centered"
-)
-
-# Load trained model
-nn_model, tfidf, df = pickle.load(open("model.pkl", "rb"))
+st.set_page_config(page_title="Instant Music Recommender", layout="centered")
 
 st.title("🎵 Instant Music Recommender")
 
-# Song selector
-selected_song = st.selectbox(
-    "🎶 Select a song:",
-    df["song"].values
-)
+@st.cache_data
+def load_data():
+    df = pd.read_csv("music.csv")
+    df.columns = df.columns.str.lower()
+    df["text"] = df["text"].fillna("")
+    return df
+
+@st.cache_resource
+def train_model(df):
+    tfidf = TfidfVectorizer(stop_words="english", max_features=5000)
+    tfidf_matrix = tfidf.fit_transform(df["text"])
+
+    nn = NearestNeighbors(n_neighbors=6, metric="cosine", algorithm="brute")
+    nn.fit(tfidf_matrix)
+
+    return tfidf, nn, tfidf_matrix
+
+df = load_data()
+tfidf, nn_model, tfidf_matrix = train_model(df)
+
+selected_song = st.selectbox("🎶 Select a song:", df["song"].values)
 
 def recommend(song):
-    index = df[df["song"] == song].index[0]
-
-    song_text = df.iloc[index]["text"]
-    song_vector = tfidf.transform([song_text])
-
-    distances, indices = nn_model.kneighbors(song_vector)
+    idx = df[df["song"] == song].index[0]
+    song_vec = tfidf_matrix[idx]
+    distances, indices = nn_model.kneighbors(song_vec)
 
     results = []
     for i in indices[0][1:]:
@@ -39,6 +46,4 @@ def recommend(song):
 
 if st.button("🚀 Recommend Similar Songs"):
     st.success("Top similar songs:")
-    result = recommend(selected_song)
-    result.index += 1
-    st.table(result)
+    st.table(recommend(selected_song))
